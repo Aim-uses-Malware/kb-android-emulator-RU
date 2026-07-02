@@ -83,7 +83,6 @@ function parseImageDetails(img) {
   return {
     apiLevel,
     androidVer,
-    deviceType,
     typeLabel,
     services,
     shortServices,
@@ -102,6 +101,83 @@ export function SdkManager({ status, refreshStatus }) {
   const [activeTab, setActiveTab] = useState('stable_playstore')
   const [progress, setProgress] = useState({})
   const [showCoreDetails, setShowCoreDetails] = useState(false)
+  const [expandedGroups, setExpandedGroups] = useState({})
+
+  // Derive variables from status & systemImages
+  const installedList = status?.installed_packages || []
+  const emulatorInstalled = status?.emulator_installed;
+  const platformToolsInstalled = status?.platform_tools_installed;
+  const coreToolsReady = emulatorInstalled && platformToolsInstalled;
+
+  const validSystemImages = systemImages.filter(img => img && img.id && img.name);
+
+  // Filter dynamic images based on active tab and search input
+  const filteredImages = validSystemImages.filter(img => {
+    const details = parseImageDetails(img)
+    const matchesSearch = img.name.toLowerCase().includes(search.toLowerCase()) || 
+                          img.id.toLowerCase().includes(search.toLowerCase());
+    if (!matchesSearch) return false
+
+    const isWear = img.id.includes('wear') || img.name.toLowerCase().includes('wear');
+    const isTv = img.id.includes('tv') || img.id.includes('google-tv') || img.name.toLowerCase().includes('tv');
+    const isAuto = img.id.includes('automotive') || img.name.toLowerCase().includes('automotive');
+
+    switch (activeTab) {
+      case 'stable_playstore': 
+        return details.stability === 'Stable' && details.shortServices === 'Play Store' && !isWear && !isTv && !isAuto;
+      case 'stable_google':    
+        return details.stability === 'Stable' && details.shortServices !== 'Play Store' && !isWear && !isTv && !isAuto;
+      case 'beta':             
+        return details.stability === 'Beta / Preview' && !isWear && !isTv && !isAuto;
+      case 'tv':              
+        return isTv;
+      case 'wear':            
+        return isWear;
+      case 'automotive':      
+        return isAuto;
+      default:                
+        return true;
+    }
+  })
+
+  // Deduplicate: If there are multiple packages with the same variant and base API level, keep only the latest version.
+  const dedupedImages = [];
+  const seen = {};
+  const sortedImagesForDedup = [...filteredImages].sort((a, b) => {
+    const detailsA = parseImageDetails(a)
+    const detailsB = parseImageDetails(b)
+    return detailsB.apiLevel - detailsA.apiLevel; // higher API level first
+  });
+
+  sortedImagesForDedup.forEach(img => {
+    const idParts = img.id.split(';');
+    if (idParts.length >= 4) {
+      const rawVer = idParts[1].replace('android-', '');
+      const baseVer = rawVer.split('.')[0]; // e.g. "35"
+      const variant = idParts[2];
+      const key = `${baseVer}-${variant}`;
+      if (!seen[key]) {
+        seen[key] = true;
+        dedupedImages.push(img);
+      }
+    } else {
+      dedupedImages.push(img);
+    }
+  });
+
+  // Group dedupedImages by API level dynamically (future-proof)
+  const groups = {};
+  dedupedImages.forEach(img => {
+    const details = parseImageDetails(img);
+    const key = String(details.apiLevel);
+    if (!groups[key]) {
+      groups[key] = [];
+    }
+    groups[key].push(img);
+  });
+
+  // Sort groups descending (e.g. API 37 before API 36)
+  const sortedGroupKeys = Object.keys(groups).sort((a, b) => Number(b) - Number(a));
 
   useEffect(() => {
     const unsubscribe = api.on('progress', (payload) => {
@@ -175,7 +251,20 @@ export function SdkManager({ status, refreshStatus }) {
     setInstalling(s => ({ ...s, _licenses: false }))
   }
 
-  // Block if cmdline tools not ready
+  // Auto-expand the latest (first) group by default when tab/list changes
+  useEffect(() => {
+    if (sortedGroupKeys.length > 0) {
+      const latest = sortedGroupKeys[0];
+      setExpandedGroups(s => {
+        if (s[latest] === undefined) {
+          return { [latest]: true };
+        }
+        return s;
+      });
+    }
+  }, [activeTab, systemImages, search]);
+
+  // Block if cmdline tools not ready (Render this check AFTER all hook definitions)
   if (!status?.cmdline_installed || !status?.jdk_installed) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -198,97 +287,6 @@ export function SdkManager({ status, refreshStatus }) {
       </div>
     )
   }
-
-  const installedList = status?.installed_packages || []
-  const emulatorInstalled = status?.emulator_installed;
-  const platformToolsInstalled = status?.platform_tools_installed;
-  const coreToolsReady = emulatorInstalled && platformToolsInstalled;
-
-  // Sanitize the Google package list to prevent null-pointer crashes
-  const validSystemImages = systemImages.filter(img => img && img.id && img.name);
-
-  // Filter dynamic images based on active tab and search input
-  const filteredImages = validSystemImages.filter(img => {
-    const details = parseImageDetails(img)
-    const matchesSearch = img.name.toLowerCase().includes(search.toLowerCase()) || 
-                          img.id.toLowerCase().includes(search.toLowerCase());
-    if (!matchesSearch) return false
-
-    const isWear = img.id.includes('wear') || img.name.toLowerCase().includes('wear');
-    const isTv = img.id.includes('tv') || img.id.includes('google-tv') || img.name.toLowerCase().includes('tv');
-    const isAuto = img.id.includes('automotive') || img.name.toLowerCase().includes('automotive');
-
-    switch (activeTab) {
-      case 'stable_playstore': 
-        return details.stability === 'Stable' && details.shortServices === 'Play Store' && !isWear && !isTv && !isAuto;
-      case 'stable_google':    
-        return details.stability === 'Stable' && details.shortServices !== 'Play Store' && !isWear && !isTv && !isAuto;
-      case 'beta':             
-        return details.stability === 'Beta / Preview' && !isWear && !isTv && !isAuto;
-      case 'tv':              
-        return isTv;
-      case 'wear':            
-        return isWear;
-      case 'automotive':      
-        return isAuto;
-      default:                
-        return true;
-    }
-  })
-
-  // Deduplicate: If there are multiple packages with the same variant and base API level, keep only the latest version.
-  const dedupedImages = [];
-  const seen = {};
-  const sortedImagesForDedup = [...filteredImages].sort((a, b) => {
-    const detailsA = parseImageDetails(a)
-    const detailsB = parseImageDetails(b)
-    return detailsB.apiLevel - detailsA.apiLevel; // higher API level first
-  });
-
-  sortedImagesForDedup.forEach(img => {
-    const idParts = img.id.split(';');
-    if (idParts.length >= 4) {
-      const rawVer = idParts[1].replace('android-', '');
-      const baseVer = rawVer.split('.')[0]; // e.g. "35"
-      const variant = idParts[2];
-      const key = `${baseVer}-${variant}`;
-      if (!seen[key]) {
-        seen[key] = true;
-        dedupedImages.push(img);
-      }
-    } else {
-      dedupedImages.push(img);
-    }
-  });
-
-  // Group dedupedImages by API level dynamically (future-proof)
-  const groups = {};
-  dedupedImages.forEach(img => {
-    const details = parseImageDetails(img);
-    const key = String(details.apiLevel);
-    if (!groups[key]) {
-      groups[key] = [];
-    }
-    groups[key].push(img);
-  });
-
-  // Sort groups descending (e.g. API 37 before API 36)
-  const sortedGroupKeys = Object.keys(groups).sort((a, b) => Number(b) - Number(a));
-
-  const [expandedGroups, setExpandedGroups] = useState({})
-  
-  // Auto-expand the latest (first) group by default when tab/list changes
-  useEffect(() => {
-    if (sortedGroupKeys.length > 0) {
-      const latest = sortedGroupKeys[0];
-      setExpandedGroups(s => {
-        if (s[latest] === undefined) {
-          return { [latest]: true };
-        }
-        return s;
-      });
-    }
-  }, [activeTab, systemImages, search]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
