@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release Version (e.g., 0.1.0-beta.1). If left blank, it will auto-detect and bump the latest beta pre-release number.'
+        description: 'Release Version (e.g., 0.1.0). If left blank, it will auto-detect and bump the patch version number.'
         required: false
         default: ''
 
