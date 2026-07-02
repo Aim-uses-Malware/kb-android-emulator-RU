@@ -33,29 +33,22 @@ jobs:
             $latestTag = git describe --tags --abbrev=0 2>$null
             Write-Host "Latest Git Tag found: $latestTag"
             
-            # Match formats like v0.1.0-beta.2 or 0.1.0-beta.2
-            if ($latestTag -and $latestTag -match 'v?(\d+\.\d+\.\d+)-beta\.(\d+)') {
-              $base = $Matches[1]
-              $beta = $Matches[2]
-              $next = [int]$beta + 1
-              $version = "$base-beta.$next"
-            } elseif ($latestTag -and $latestTag -match 'v?(\d+\.\d+\.\d+)') {
-              # If it's a stable tag, append beta.1 to the next patch version
+            if ($latestTag -and $latestTag -match 'v?(\d+\.\d+\.\d+)') {
               $base = $Matches[1]
               $parts = $base.Split('.')
               $patch = [int]$parts[2] + 1
-              $version = "$($parts[0]).$($parts[1]).$patch-beta.1"
+              $version = "$($parts[0]).$($parts[1]).$patch"
             } else {
               # Fallback if no tags exist
-              $version = "0.1.0-beta.1"
+              $version = "0.1.0"
             }
           }
           
-          # Strip 'v' prefix if typed
-          $version = $version -replace '^v', ''
+          # Strip 'v' prefix if typed and trim whitespace
+          $version = ($version -replace '^v', '').Trim()
           
-          # Set as output
-          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+          # Set as output safely in UTF-8
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "VERSION=$version"
           Write-Host "Resolved Target Release Version: $version"
 
       - name: Setup Node.js
@@ -75,6 +68,7 @@ jobs:
         shell: pwsh
         run: |
           $version = "${{ steps.get_version.outputs.VERSION }}"
+          $version = $version.Trim()
           
           # Update package.json version
           (Get-Content package.json) -replace '"version":\s*"[^"]+"', "`"version`": `"$version`"" | Set-Content package.json
@@ -91,6 +85,7 @@ jobs:
         shell: pwsh
         run: |
           $version = "${{ steps.get_version.outputs.VERSION }}"
+          $version = $version.Trim()
           git config --local user.email "106017926+kil0bit-kb@users.noreply.github.com"
           git config --local user.name "kil0bit-kb"
           git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml
