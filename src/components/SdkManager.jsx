@@ -8,12 +8,12 @@ const CORE_TOOLS = [
 ]
 
 const TABS = [
-  { id: 'stable_playstore', label: 'Stable (Play Store)', icon: '📱' },
-  { id: 'stable_google',    label: 'Stable (Google APIs / AOSP)', icon: '🧪' },
-  { id: 'beta',             label: 'Beta / Previews', icon: '⚡' },
+  { id: 'stable_playstore', label: 'Стабильнвй (Play-Маркет)', icon: '📱' },
+  { id: 'stable_google',    label: 'Стабильный (Google APIs / AOSP)', icon: '🧪' },
+  { id: 'beta',             label: 'Бета / Пре-сборки', icon: '⚡' },
   { id: 'tv',              label: 'Android TV', icon: '📺' },
   { id: 'wear',            label: 'Wear OS', icon: '⌚' },
-  { id: 'automotive',      label: 'Automotive', icon: '🚗' },
+  { id: 'automotive',      label: 'Авто', icon: '🚗' },
 ]
 
 // Helper to parse package metadata dynamically and future-proof it
@@ -58,30 +58,30 @@ function parseImageDetails(img) {
   let deviceType = "Phone / Tablet";
   let typeLabel = "📱 Phone";
   if (isWear) {
-    deviceType = "Wear OS Watch";
+    deviceType = "Wear OS Часы";
     typeLabel = "⌚ Wear OS";
   } else if (isTv) {
     deviceType = "Android TV";
     typeLabel = "📺 Android TV";
   } else if (isAuto) {
-    deviceType = "Automotive Car";
-    typeLabel = "🚗 Automotive";
+    deviceType = "Авто Машина";
+    typeLabel = "🚗 Машина";
   }
 
   // System services/APIs
   let services = "Google APIs";
   let shortServices = "Google APIs";
   if (id.includes('playstore') || name.toLowerCase().includes('playstore') || name.toLowerCase().includes('play store')) {
-    services = "Google Play Store (with Services)";
+    services = "Google Play Store (с Сервисами)";
     shortServices = "Play Store";
   } else if (id.includes('google-tv') || id.includes('google_tv') || name.toLowerCase().includes('google tv') || name.toLowerCase().includes('google-tv')) {
-    services = "Google TV (with Play Services)";
+    services = "Google TV (с Play Сервисами)";
     shortServices = "Google TV";
   } else if (id.includes('android-tv') || id.includes('android_tv')) {
-    services = "Android TV (with Services)";
+    services = "Android TV (с сервисами)";
     shortServices = "Android TV";
   } else if (id.includes('google_apis') || name.toLowerCase().includes('google apis')) {
-    services = "Google APIs Developer Image";
+    services = "Образы разработчиков Google API";
     shortServices = "Google APIs";
   } else {
     services = "AOSP Pure Android";
@@ -91,7 +91,7 @@ function parseImageDetails(img) {
   const is16k = id.includes('ps16k') || id.includes('16k') || id.includes('16kb');
   // API levels indicating Beta/Preview are identified by tags like 'preview' or 'beta'
   const isPreview = id.includes('preview') || id.includes('beta') || name.toLowerCase().includes('preview') || name.toLowerCase().includes('beta') || is16k;
-  const stability = isPreview ? "Beta / Preview" : "Stable";
+  const stability = isPreview ? "Бета / Пре-сборки" : "Стабильный";
 
   return {
     apiLevel,
@@ -140,11 +140,11 @@ export function SdkManager({ status, refreshStatus }) {
 
     switch (activeTab) {
       case 'stable_playstore': 
-        return details.stability === 'Stable' && details.shortServices === 'Play Store' && !isWear && !isTv && !isAuto;
+        return details.stability === 'Стабильный' && details.shortServices === 'Play Store' && !isWear && !isTv && !isAuto;
       case 'stable_google':    
-        return details.stability === 'Stable' && details.shortServices !== 'Play Store' && !isWear && !isTv && !isAuto;
+        return details.stability === 'Стабильный' && details.shortServices !== 'Play Store' && !isWear && !isTv && !isAuto;
       case 'beta':             
-        return details.stability === 'Beta / Preview' && !isWear && !isTv && !isAuto;
+        return details.stability === 'Бета / Пре-сборка' && !isWear && !isTv && !isAuto;
       case 'tv':              
         return isTv;
       case 'wear':            
@@ -228,7 +228,7 @@ export function SdkManager({ status, refreshStatus }) {
     try {
       const result = await api.installPackage({ packageId: pkgId })
       if (!result.ok) {
-        setErrors(s => ({ ...s, [pkgId]: result.error || 'Installation failed' }))
+        setErrors(s => ({ ...s, [pkgId]: result.error || 'Ошибка установки' }))
       } else {
         if (refreshStatus) await refreshStatus()
         await loadSdkImages()
@@ -240,13 +240,13 @@ export function SdkManager({ status, refreshStatus }) {
   }
 
   const uninstallPkg = async (pkgId) => {
-    if (!confirm("⚠️ Are you sure you want to delete this system image? \n\nThis will remove the system files from your disk. Any created devices using this image won't be able to boot until reinstalled.")) return
+    if (!confirm("⚠️ Вы уверены что хотите удалить этот образ системы? \n\nЭто удалить все системные файлы с диска. Все девайсы уставноленные на этом образе не смогут запуститься.")) return
     setInstalling(s => ({ ...s, [pkgId]: true }))
     setErrors(s => ({ ...s, [pkgId]: null }))
     try {
       const result = await api.uninstallPackage({ packageId: pkgId })
       if (!result.ok) {
-        setErrors(s => ({ ...s, [pkgId]: result.error || 'Deletion failed' }))
+        setErrors(s => ({ ...s, [pkgId]: result.error || 'Ошбика удаления' }))
       } else {
         if (refreshStatus) await refreshStatus()
         await loadSdkImages()
@@ -285,14 +285,14 @@ export function SdkManager({ status, refreshStatus }) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div className="alert alert-warn">
-          ⚠️ <strong>Setup not complete!</strong> You must install <strong>JDK</strong> and <strong>cmdline-tools</strong> first before using the SDK Manager.
-          Go to the <strong>Setup / Install</strong> page in the sidebar and complete all steps.
+          ⚠️ <strong>Настройка не завершена!</strong> Вы должны установить <strong>JDK</strong> и <strong>cmdline-tools</strong> прежде чем использовать SDK Manager.
+          Прейдите на вкладку <strong>Настройка / Уставнока</strong> в боковой панели и завершите все шаги.
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {[
-            { label: 'Step 1: Portable OpenJDK 21', done: status?.jdk_installed },
-            { label: 'Step 2: Android cmdline-tools', done: status?.cmdline_installed },
-            { label: 'Step 3: Use SDK Manager below ↓', done: false },
+            { label: 'Шаг 1: Портативный OpenJDK 21', done: status?.jdk_installed },
+            { label: 'Шаг 2: Android cmdline-tools', done: status?.cmdline_installed },
+            { label: 'Шаг 3: Использовать SDK Manager ниже ↓', done: false },
           ].map((s, i) => (
             <div key={i} className="pkg-row">
               <span style={{ fontSize: 20 }}>{s.done ? '✅' : '⏳'}</span>
@@ -321,14 +321,14 @@ export function SdkManager({ status, refreshStatus }) {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
               <span style={{ color: '#34d399', fontSize: 14 }}>🟢</span>
-              <span><strong>Emulator Core Engine</strong> is fully operational and ready.</span>
+              <span><strong>Emulator Core Engine</strong> полностью функционален и готов к работе.</span>
             </div>
             <button 
               className="btn btn-ghost btn-sm" 
               style={{ padding: '3px 8px', fontSize: 10 }}
               onClick={() => setShowCoreDetails(!showCoreDetails)}
             >
-              {showCoreDetails ? 'Hide Details' : 'Show Core Tools'}
+              {showCoreDetails ? 'Скрыть детали' : 'Show Core Tools'}
             </button>
           </div>
         ) : (
@@ -341,7 +341,7 @@ export function SdkManager({ status, refreshStatus }) {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
               <span style={{ color: '#fbbf24', fontSize: 14 }}>⚠️</span>
-              <span><strong>Core Emulator Tools are missing!</strong> You must download them to run or create virtual devices.</span>
+              <span><strong>Core Emulator Tools отсутсвует!</strong> Вы должны установить их или запустить вирутальную машину.</span>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               {CORE_TOOLS.map(pkg => {
@@ -352,7 +352,7 @@ export function SdkManager({ status, refreshStatus }) {
                 const isInstalling = installing[pkg.id];
                 return (
                   <button key={pkg.id} className="btn btn-sm btn-primary" onClick={() => installPkg(pkg.id)} disabled={isInstalling}>
-                    {isInstalling ? <Spinner size={10} /> : '⬇ Download '} {pkg.name}
+                    {isInstalling ? <Spinner size={10} /> : '⬇ Скачать '} {pkg.name}
                   </button>
                 );
               })}
@@ -412,7 +412,7 @@ export function SdkManager({ status, refreshStatus }) {
         if (installedImages.length === 0) return null;
         return (
           <div className="section">
-            <div className="section-title">💾 Downloaded OS Images ({installedImages.length})</div>
+            <div className="section-title">💾 Скачать OS образы ({installedImages.length})</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {installedImages.map(img => {
                 const isInstalling = installing[img.id];
@@ -446,7 +446,7 @@ export function SdkManager({ status, refreshStatus }) {
                       <div style={{ display: 'flex', gap: 6 }}>
                         <button className="btn btn-sm btn-ghost" style={{ padding: '4px 8px', fontSize: 10 }}
                           onClick={() => installPkg(img.id)} disabled={!!isInstalling}>
-                          {isInstalling ? <Spinner size={10} /> : '🔄 Repair'}
+                          {isInstalling ? <Spinner size={10} /> : '🔄 Исправить'}
                         </button>
                         <button className="btn btn-sm btn-ghost" style={{ 
                           padding: '4px 8px', 
@@ -462,7 +462,7 @@ export function SdkManager({ status, refreshStatus }) {
                     {isInstalling && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%', padding: '0 8px 6px 8px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: 'var(--text-accent)' }}>
-                          <span>Modifying system files...</span>
+                          <span>Модифицирование системных файлов...</span>
                           <span className="font-mono">{pct}%</span>
                         </div>
                         <div className="progress-wrap" style={{ height: 4 }}>
@@ -482,7 +482,7 @@ export function SdkManager({ status, refreshStatus }) {
 
       {/* ─── Part 2: System Images Manager ─── */}
       <div className="section">
-        <div className="section-title">📥 Browse & Download OS Images</div>
+        <div className="section-title">📥 Загрузить & Скачать образ системы</div>
         
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
           {/* Tabs */}
@@ -502,10 +502,10 @@ export function SdkManager({ status, refreshStatus }) {
 
           <div className="flex gap-2">
             <button className="btn btn-ghost btn-sm" style={{ fontSize: 10, padding: '5px 10px' }} onClick={acceptLicenses} disabled={!!installing._licenses}>
-              {installing._licenses ? <Spinner size={10} /> : '📜 Accept SDK Licenses'}
+              {installing._licenses ? <Spinner size={10} /> : '📜 Принять лицензию SDK'}
             </button>
             <button className="btn btn-ghost btn-sm" style={{ fontSize: 10, padding: '5px 10px' }} onClick={loadSdkImages} disabled={loadingImages}>
-              {loadingImages ? <Spinner size={10} /> : '🔄 Sync Repo'}
+              {loadingImages ? <Spinner size={10} /> : '🔄 Синхронизировать Repo'}
             </button>
           </div>
         </div>
@@ -514,7 +514,7 @@ export function SdkManager({ status, refreshStatus }) {
         <div className="search-input-wrapper" style={{ marginBottom: 12 }}>
           <input 
             className="form-input search-input" 
-            placeholder="🔍 Filter system images (e.g. '35', 'google_apis', 'playstore')..." 
+            placeholder="🔍 Фильтр образов (e.g. '35', 'google_apis', 'playstore')..." 
             value={search} 
             onChange={e => setSearch(e.target.value)}
             style={{ padding: '6px 10px', fontSize: 12 }}
@@ -525,13 +525,13 @@ export function SdkManager({ status, refreshStatus }) {
         {loadingImages ? (
           <div className="flex items-center justify-center" style={{ padding: 40, gap: 12 }}>
             <Spinner size={16} />
-            <span className="text-muted" style={{ fontSize: 12 }}>Fetching latest package manifests from Google APIs...</span>
+            <span className="text-muted" style={{ fontSize: 12 }}>Получение последних манифестов от Google API...</span>
           </div>
         ) : filteredImages.length === 0 ? (
           <div className="empty-state" style={{ padding: '24px 10px' }}>
             <div className="empty-icon" style={{ fontSize: 24 }}>📦</div>
-            <div className="empty-title" style={{ fontSize: 12 }}>No images found matching criteria</div>
-            <div className="empty-desc" style={{ fontSize: 11 }}>Try clicking "Sync Repo" or clearing your search filter.</div>
+            <div className="empty-title" style={{ fontSize: 12 }}>Нет похожих образов по критерии</div>
+            <div className="empty-desc" style={{ fontSize: 11 }}>Попробуйте нажать "Синхронизировать Repo" или почистить фильтр образов.</div>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: '55vh', overflowY: 'auto', paddingRight: 4 }}>
@@ -624,7 +624,7 @@ export function SdkManager({ status, refreshStatus }) {
                                 <button className={`btn btn-sm ${isInstalling ? 'btn-ghost' : 'btn-primary'}`}
                                   onClick={() => installPkg(img.id)} disabled={!!isInstalling}
                                   style={{ padding: '4px 8px', fontSize: 10 }}>
-                                  {isInstalling ? <Spinner size={8} /> : '⬇ Download'}
+                                  {isInstalling ? <Spinner size={8} /> : '⬇ Скачать'}
                                 </button>
                               )}
                             </div>
